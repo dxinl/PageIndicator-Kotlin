@@ -17,7 +17,7 @@ class PageIndicator @JvmOverloads
 constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
     : View(context, attrs, defStyleAttr) {
 
-    private var pager: ViewPager? = null
+    private lateinit var pager: ViewPager
     private val listener: ViewPager.OnPageChangeListener
     private val observer: DataSetObserver
     private val paint: Paint
@@ -76,13 +76,16 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     }
 
     fun bindViewPager(pager: ViewPager) {
-        this.pager?.adapter?.unregisterDataSetObserver(observer)
+        try {
+            if (pager == this.pager) {
+                return
+            }
+            this.pager.adapter.unregisterDataSetObserver(observer)
+        } catch (e: UninitializedPropertyAccessException) {
+            // do nothing
+        }
 
         checkNotNull(pager, "ViewPager")
-
-        if (pager == this.pager) {
-            return
-        }
 
         pager.addOnPageChangeListener(listener)
         position = pager.currentItem
@@ -92,7 +95,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val count = pager?.adapter?.count?.check()
+        val count = pager.adapter.count.check()
         if (count == null) {
             setMeasuredDimension(0, 0)
             return
@@ -131,7 +134,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     }
 
     override fun onDraw(canvas: Canvas?) {
-        val count = pager?.adapter?.count?.check() ?: return
+        val count = pager.adapter.count.check() ?: return
         for (i in 0..(count - 1)) {
             val radiusX = startX + radius * (i * 2 + 1) + dividerWidth * i
             if (i == position && positionOffset == 0F) {
