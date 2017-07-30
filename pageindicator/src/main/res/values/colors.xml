@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="default_selected_color">@android:color/holo_blue_bright</color>
+    <color name="default_normal_color">@android:color/darker_gray</color>
+</resources>
