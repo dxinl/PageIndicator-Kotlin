@@ -1,6 +1,7 @@
 package com.mx.dxinl.pageindicator
 
 import android.content.Context
+import android.database.DataSetObserver
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.support.v4.view.ViewPager
@@ -9,13 +10,16 @@ import android.view.View
 
 /**
  * Created by dxinl on 2017/07/30.
+ *
+ * Indicator for ViewPager
  */
 class PageIndicator @JvmOverloads
 constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
     : View(context, attrs, defStyleAttr) {
 
-    private lateinit var pager: ViewPager
+    private var pager: ViewPager? = null
     private val listener: ViewPager.OnPageChangeListener
+    private val observer: DataSetObserver
     private val paint: Paint
 
     private val radius: Float
@@ -62,19 +66,39 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
             }
         }
 
+        observer = object : DataSetObserver() {
+            override fun onChanged() {
+                requestLayout()
+            }
+        }
+
         paint = Paint(Paint.ANTI_ALIAS_FLAG)
     }
 
     fun bindViewPager(pager: ViewPager) {
+        this.pager?.adapter?.unregisterDataSetObserver(observer)
+
         checkNotNull(pager, "ViewPager")
+
+        if (pager == this.pager) {
+            return
+        }
+
         pager.addOnPageChangeListener(listener)
+        position = pager.currentItem
+        pager.adapter.registerDataSetObserver(observer)
         this.pager = pager
         requestLayout()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val count = pager?.adapter?.count?.check()
+        if (count == null) {
+            setMeasuredDimension(0, 0)
+            return
+        }
+
         val widthMode = MeasureSpec.getMode(widthMeasureSpec)
-        val count = pager.adapter.count
         val trulyWidth = count * radius * 2 + (count - 1) * dividerWidth
         val width = when (widthMode) {
             MeasureSpec.UNSPECIFIED, MeasureSpec.AT_MOST ->
@@ -107,7 +131,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     }
 
     override fun onDraw(canvas: Canvas?) {
-        val count = pager.adapter.count
+        val count = pager?.adapter?.count?.check() ?: return
         for (i in 0..(count - 1)) {
             val radiusX = startX + radius * (i * 2 + 1) + dividerWidth * i
             if (i == position && positionOffset == 0F) {
@@ -124,5 +148,13 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
             paint.color = selectedColor
             canvas?.drawCircle(pEndX, centerY, radius, paint)
         }
+    }
+
+    private fun Int.check(): Int? {
+        if (this <= 0) {
+            return null
+        }
+
+        return this
     }
 }
